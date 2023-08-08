@@ -10,6 +10,7 @@ import vR from "./fonts/Vazirmatn-Regular.ttf";
 import vB from "./fonts/Vazirmatn-Bold.ttf";
 import classNames from "./App.module.css";
 import { mock } from "./mock";
+import _ from "./lodash";
 
 // TODO: take these in as props
 // const fieldsToIgnore = ["deleted_at", "_count", "id"];
@@ -24,69 +25,109 @@ Font.register({
   src: vB,
 });
 
+const _FIELDS_TO_IGNORE = ["id", "_count", "deleted_at"];
+const _MAX_COLS_PER_PAGE = 5;
 const _MAX_ROWS_PER_PAGE = 8;
-
-const getRowChunks = (
-  rows: object[],
-  MAX_ROWS_PER_PAGE = _MAX_ROWS_PER_PAGE
-) => {
-  const chunk = [];
-  for (let i = 0; i < rows.length; i += MAX_ROWS_PER_PAGE) {
-    chunk.push(rows.slice(i, i + MAX_ROWS_PER_PAGE));
-  }
-  return chunk;
-};
 
 const DatasetTableDocument = ({
   data,
-  maxRowsPerPage,
+  maxRowsPerPage = _MAX_ROWS_PER_PAGE,
+  maxColsPerPage = _MAX_COLS_PER_PAGE,
+  fieldsToIgnore = _FIELDS_TO_IGNORE,
 }: {
   data: object[];
   maxRowsPerPage?: number;
+  maxColsPerPage?: number;
+  fieldsToIgnore?: string[];
 }) => {
+  const cleanData: object[] = _.omit(data, fieldsToIgnore) as object[];
 
-  // TODO: need column chunks too. calculate pages based on col chunks and row chunks.
-  const rowChunks = getRowChunks(data, maxRowsPerPage);
+  const _colNames = Object.keys(cleanData[0]);
+
+  const colsNamesChunks = _.chunk(_colNames, maxColsPerPage);
+
+  const tableDataChunks = _.chunk(data, maxRowsPerPage);
 
   return (
     <Document style={{ fontFamily: "Vazirmatn-Regular", fontSize: 12 }}>
-      {rowChunks.map((rowChunk, i) => {
-        return (
+      {colsNamesChunks.map((colNames, ic) => {
+        return tableDataChunks.map((tableData, it) => (
           <Page
             size="A4"
             orientation="landscape"
-            key={i}
+            key={`${ic}-${it}`}
             style={{ padding: 16 }}
           >
-            <View style={{ border: 1, borderBottom: 0 }}>
-              {rowChunk.map((row) => (
-                <Row rowData={row} />
-              ))}
-            </View>
+            <Table
+              tableData={tableData}
+              colNames={colNames}
+              key={`${ic}-${it}`}
+            />
           </Page>
-        );
+        ));
       })}
     </Document>
   );
 };
 
-function Row({ rowData }: { rowData: object }) {
+function Table({
+  colNames,
+  tableData,
+}: {
+  tableData: object[];
+  colNames: string[];
+}) {
+  return (
+    <>
+      <Row values={colNames} bold />
+      {tableData.map((rowData: unknown, i) => (
+        <Row
+          values={colNames.map((colName) => {
+            const cell: unknown = (rowData as never)[colName];
+
+            if (typeof cell === "string") {
+              return cell;
+            }
+
+            if (typeof cell === "number") {
+              return cell.toString();
+            }
+
+            if (typeof cell === "boolean") {
+              return cell ? 'true' : 'false';
+            }
+
+            return "Not viewable";
+          })}
+          key={i}
+        />
+      ))}
+    </>
+  );
+}
+
+function Row({ values, bold = false }: { values: string[]; bold?: boolean }) {
   return (
     <View style={{ display: "flex", flexDirection: "row-reverse" }}>
-      {Object.values(rowData).map((val) => (
+      {values.map((val) => (
         <View
           style={{
             overflow: "hidden",
             padding: 4,
-            width: 100,
+            width: "100%",
             height: 30,
             border: 1,
+            ...(bold && { backgroundColor: "#c9c9c9" }),
           }}
+          key={val}
         >
-          <Text style={{ backgroundColor: "blue" }}>
-            {typeof val === "string" || typeof val === "number"
-              ? val
-              : "not allowed"}
+          <Text
+            style={{
+              textAlign: "center",
+              ...(bold && { fontFamily: "Vazirmatn-Bold" }),
+            }}
+          >
+            {val}
           </Text>
         </View>
       ))}
@@ -97,7 +138,12 @@ function Row({ rowData }: { rowData: object }) {
 function App() {
   return (
     <PDFViewer className={classNames.container}>
-      <DatasetTableDocument data={mock} />
+      <DatasetTableDocument
+        data={mock}
+        fieldsToIgnore={_FIELDS_TO_IGNORE}
+        maxColsPerPage={_MAX_COLS_PER_PAGE}
+        maxRowsPerPage={_MAX_ROWS_PER_PAGE}
+      />
     </PDFViewer>
   );
 }
