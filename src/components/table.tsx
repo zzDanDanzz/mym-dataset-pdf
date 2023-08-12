@@ -1,4 +1,6 @@
-import { View, Text } from "@react-pdf/renderer";
+import { Text, View } from "@react-pdf/renderer";
+import { useContext } from "react";
+import FontContext from "../context/fontFamilies";
 
 export default function Table({
   colNames,
@@ -37,6 +39,8 @@ export default function Table({
 }
 
 function Row({ values, bold = false }: { values: string[]; bold?: boolean }) {
+  const fontFamilies = useContext(FontContext);
+
   return (
     <View style={{ display: "flex", flexDirection: "row-reverse" }}>
       {values.map((val) => (
@@ -54,7 +58,8 @@ function Row({ values, bold = false }: { values: string[]; bold?: boolean }) {
           <Text
             style={{
               textAlign: "center",
-              ...(bold && { fontFamily: "Vazirmatn-Bold" }),
+              ...(bold &&
+                fontFamilies.bold && { fontFamily: fontFamilies.bold }),
             }}
           >
             {val}

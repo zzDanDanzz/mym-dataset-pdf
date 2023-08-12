@@ -17,7 +17,10 @@ Font.register({
 function App() {
   return (
     <PDFViewer style={{ height: "100vh", width: "100vw" }}>
-      <DatasetTableDocument data={mock} />
+      <DatasetTableDocument
+        data={mock}
+        fontFamilies={{ regular: "Vazirmatn-Regular", bold: "Vazirmatn-Bold" }}
+      />
     </PDFViewer>
   );
 }
