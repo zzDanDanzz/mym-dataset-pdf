@@ -26,13 +26,15 @@ const DatasetTableDocument = ({
 }: IDatasetTableDocument) => {
   const fontFamilies = useContext(FontContext);
 
-  const cleanData: object[] = _.omit(data, fieldsToIgnore) as object[];
+  const cleanData: object[] = data.map((row) =>
+    _.omit(row, fieldsToIgnore)
+  ) as object[];
 
   const _colNames = Object.keys(cleanData[0]);
 
   const colsNamesChunks = _.chunk(_colNames, maxColsPerPage);
 
-  const tableDataChunks = _.chunk(data, maxRowsPerPage);
+  const tableDataChunks = _.chunk(cleanData, maxRowsPerPage);
 
   return (
     <Document
