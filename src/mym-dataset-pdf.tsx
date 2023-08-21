@@ -12,7 +12,7 @@ export function MyMDatasetPdf({
   fontFamilies,
   ...datasetTableDocument
 }: IDatasetTableDocument & {
-  fontFamilies: Required<IFontContext>;
+  fontFamilies: IFontContext;
 }) {
   return (
     <FontContext.Provider
@@ -27,12 +27,10 @@ export function MyMReportPDF({
   fontFamilies,
   ...mapReportDocument
 }: IMapReportDocument & {
-  fontFamilies: Required<IFontContext>;
+  fontFamilies: IFontContext;
 }) {
   return (
-    <FontContext.Provider
-      value={{ regular: fontFamilies.regular, bold: fontFamilies.bold }}
-    >
+    <FontContext.Provider value={{ ...fontFamilies }}>
       <MapReportDocument {...mapReportDocument} />
     </FontContext.Provider>
   );

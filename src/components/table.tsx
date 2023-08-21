@@ -41,6 +41,10 @@ export default function Table({
 function Row({ values, bold = false }: { values: string[]; bold?: boolean }) {
   const fontFamilies = useContext(FontContext);
 
+  const fontSize = bold
+    ? fontFamilies.sizes?.bold || 12
+    : fontFamilies.sizes?.regular || 10;
+
   return (
     <View style={{ display: "flex", flexDirection: "row-reverse" }}>
       {values.map((val) => (
@@ -58,6 +62,7 @@ function Row({ values, bold = false }: { values: string[]; bold?: boolean }) {
           <Text
             style={{
               textAlign: "center",
+              fontSize,
               ...(bold &&
                 fontFamilies.bold && { fontFamily: fontFamilies.bold }),
             }}
