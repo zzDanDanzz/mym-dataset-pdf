@@ -1,8 +1,8 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { useContext } from "react";
+import FontContext from "../../context/fontFamilies";
 import Table from "../table";
 import _ from "../utils/lodash";
-import FontContext from "../../context/fontFamilies";
 
 const _DEFAULT_MAX_COLS_PER_PAGE = 5;
 const _DEFAULT_MAX_ROWS_PER_PAGE = 16;
@@ -62,6 +62,13 @@ export const MapReportDocument = ({
 
   console.log(data.map_1Settings.dataUrl);
 
+  const header = (
+    <Header
+      {...(data.withLogo && { logoSrc: data.logoSrc })}
+      title={data.title}
+    />
+  );
+
   return (
     <Document
       style={{
@@ -70,43 +77,64 @@ export const MapReportDocument = ({
       }}
       title={data.title || "گزارش‌گیری"}
     >
-      <Page
-        size="A4"
-        orientation="portrait"
-        style={{ padding: 16, display: "flex", gap: "12" }}
-      >
-        <View
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <View style={{ width: 24, height: "auto" }}>
-            {data.withLogo && <Image src={data.logoSrc} />}
-          </View>
-          <View>{data.title !== "" && <Text>{data.title}</Text>}</View>
-        </View>
-        <Image src={data.map_1Settings.dataUrl} />
-        <Image src={data.map_2Settings.dataUrl} />
-      </Page>
       {colsNamesChunks.map((colNames, ic) => {
         return rowsDataChunks.map((tableData, it) => (
           <Page
             size="A4"
             orientation="landscape"
             key={`${ic}-${it}`}
-            style={{ padding: 16 }}
+            style={{ padding: 16, display: "flex", gap: "12" }}
           >
-            <Table
-              tableData={tableData}
-              colNames={colNames}
-              key={`${ic}-${it}`}
-            />
+            {header}
+            <View>
+              <Table
+                tableData={tableData}
+                colNames={colNames}
+                key={`${ic}-${it}`}
+              />
+            </View>
           </Page>
         ));
       })}
+      <Page
+        size="A4"
+        orientation="landscape"
+        style={{
+          padding: 16,
+          display: "flex",
+          gap: "12",
+          alignItems: "center",
+        }}
+      >
+        {header}
+        {data.map_1Settings.enabled && (
+          <Image src={data.map_1Settings.dataUrl} style={{ width: 550 }} />
+        )}
+        {data.map_2Settings.enabled && (
+          <Image src={data.map_2Settings.dataUrl} style={{ width: 550 }} />
+        )}
+      </Page>
     </Document>
   );
 };
+
+function Header({ logoSrc, title }: { logoSrc?: string; title?: string }) {
+  return (
+    <View
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
+      <View style={{ width: 24, height: "auto" }}>
+        {logoSrc && <Image src={logoSrc} />}
+      </View>
+      <View>
+        {typeof title === "string" && title.length > 0 && <Text>{title}</Text>}
+      </View>
+    </View>
+  );
+}
