@@ -77,7 +77,7 @@ export const MapReportDocument = ({
       }}
       title={data.title || "گزارش‌گیری"}
     >
-      {colsNamesChunks.map((colNames, ic) => {
+      {data.table.enabled && colsNamesChunks.map((colNames, ic) => {
         return rowsDataChunks.map((tableData, it) => (
           <Page
             size="A4"
