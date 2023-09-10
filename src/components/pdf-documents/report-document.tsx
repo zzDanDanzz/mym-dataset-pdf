@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { useContext } from "react";
 import FontContext from "../../context/fontFamilies";
@@ -15,8 +16,8 @@ export interface IMapReportDocument {
 }
 
 interface IMapReportData {
-  map_1Settings: Map1Settings;
-  map_2Settings: Map1Settings;
+  map_1Settings: MapSettings;
+  map_2Settings: MapSettings;
   withLogo: boolean;
   logoSrc: string;
   title: string;
@@ -26,16 +27,18 @@ interface IMapReportData {
 interface Table {
   enabled: boolean;
   columnNames: (boolean | string)[][];
-  rowsData: Record<string, unknown>[];
+  rowsData: {
+    properties: Record<string, unknown>;
+    dataUrl: { map_1: string; map_2: string };
+  }[];
 }
 
-interface Map1Settings {
+interface MapSettings {
   enabled: boolean;
   title: string;
   showTitle: boolean;
   withCoordinates: boolean;
   style: Style;
-  dataUrl: string;
 }
 
 interface Style {
@@ -50,7 +53,7 @@ export const MapReportDocument = ({
 }: IMapReportDocument) => {
   const fontFamilies = useContext(FontContext);
 
-  const rowsData = data.table.rowsData;
+  // const rowsData = data.table.rowsData.properties;
 
   const colNames = data.table.columnNames
     .filter(([, show]) => show)
@@ -58,9 +61,7 @@ export const MapReportDocument = ({
 
   const colsNamesChunks = _.chunk(colNames, maxColsPerPage);
 
-  const rowsDataChunks = _.chunk(rowsData, maxRowsPerPage);
-
-  console.log(data.map_1Settings.dataUrl);
+  // const rowsDataChunks = _.chunk(rowsData, maxRowsPerPage);
 
   const header = (
     <Header
@@ -77,43 +78,53 @@ export const MapReportDocument = ({
       }}
       title={data.title || "گزارش‌گیری"}
     >
-      {data.table.enabled && colsNamesChunks.map((colNames, ic) => {
-        return rowsDataChunks.map((tableData, it) => (
+      {/* {data.table.enabled &&
+        colsNamesChunks.map((colNames, ic) => {
+          return rowsDataChunks.map((tableData, it) => (
+            <Page
+              size="A4"
+              orientation="landscape"
+              key={`${ic}-${it}`}
+              style={{ padding: 16, display: "flex", gap: "12" }}
+            >
+              {header}
+              <View>
+                <Table
+                  tableData={tableData}
+                  colNames={colNames}
+                  key={`${ic}-${it}`}
+                />
+              </View>
+            </Page>
+          ));
+        })} */}
+
+      {data.table.rowsData.map((rd, i) => {
+        return (
           <Page
             size="A4"
             orientation="landscape"
-            key={`${ic}-${it}`}
-            style={{ padding: 16, display: "flex", gap: "12" }}
+            style={{
+              padding: 16,
+              display: "flex",
+              gap: "12",
+              alignItems: "center",
+            }}
+            key={i}
           >
             {header}
-            <View>
-              <Table
-                tableData={tableData}
-                colNames={colNames}
-                key={`${ic}-${it}`}
-              />
-            </View>
+            <Text>RD {i}</Text>
+            <Image src={rd.dataUrl.map_1} style={{ width: 550 }} />
+            <Image src={rd.dataUrl.map_2} style={{ width: 550 }} />
           </Page>
-        ));
+        );
       })}
-      <Page
-        size="A4"
-        orientation="landscape"
-        style={{
-          padding: 16,
-          display: "flex",
-          gap: "12",
-          alignItems: "center",
-        }}
-      >
-        {header}
-        {data.map_1Settings.enabled && (
+      {/* {data.map_1Settings.enabled && (
           <Image src={data.map_1Settings.dataUrl} style={{ width: 550 }} />
         )}
         {data.map_2Settings.enabled && (
           <Image src={data.map_2Settings.dataUrl} style={{ width: 550 }} />
-        )}
-      </Page>
+        )} */}
     </Document>
   );
 };

@@ -38,7 +38,7 @@ const pages = {
 type IPages = keyof typeof pages;
 
 function App() {
-  const [page, setPage] = useState<IPages | null>('report');
+  const [page, setPage] = useState<IPages | null>("report");
 
   const pagesData = Object.entries(pages);
   const pageComponent = page !== null ? pages[page]() : null;
