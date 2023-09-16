@@ -1,37 +1,55 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { useContext } from "react";
 import FontContext from "../../context/fontFamilies";
-import Table from "../table";
 import _ from "../utils/lodash";
-
-const _DEFAULT_MAX_COLS_PER_PAGE = 5;
-const _DEFAULT_MAX_ROWS_PER_PAGE = 16;
 
 export interface IMapReportDocument {
   data: IMapReportData;
-  maxRowsPerPage?: number;
-  maxColsPerPage?: number;
-  fieldsToIgnore?: string[];
 }
 
 interface IMapReportData {
   map_1Settings: MapSettings;
   map_2Settings: MapSettings;
+  mapCoordinates: MapCoordinates;
   withLogo: boolean;
   logoSrc: string;
   title: string;
-  table: Table;
+  table: ITable;
+  attachments: AttachmentsInfo;
+  baseUrl: string;
+  xApiKey: string;
 }
 
-interface Table {
+interface Attachment {
+  mime_type: string;
+  extension: string;
+  size: number;
+  link: string;
+  thumbnail_link: string;
+  id: number;
+}
+
+type AttachmentsInfo = {
+  attachmentColNames: string[];
+  enabled: boolean;
+  selectedColumn: string;
+};
+
+type MapCoordinates = {
+  lat: number;
+  lng: number;
+};
+
+interface ITable {
   enabled: boolean;
   columnNames: (boolean | string)[][];
-  rowsData: {
-    properties: Record<string, unknown>;
-    dataUrl: { map_1: string; map_2: string };
-  }[];
+  featuresData: IFeatureData[];
 }
+
+type IFeatureData = {
+  properties: Record<string, unknown>;
+  dataUrls: { map_1: string; map_2: string };
+};
 
 interface MapSettings {
   enabled: boolean;
@@ -46,22 +64,12 @@ interface Style {
   source: string;
 }
 
-export const MapReportDocument = ({
-  data,
-  maxRowsPerPage = _DEFAULT_MAX_ROWS_PER_PAGE,
-  maxColsPerPage = _DEFAULT_MAX_COLS_PER_PAGE,
-}: IMapReportDocument) => {
+export const MapReportDocument = ({ data }: IMapReportDocument) => {
   const fontFamilies = useContext(FontContext);
-
-  // const rowsData = data.table.rowsData.properties;
 
   const colNames = data.table.columnNames
     .filter(([, show]) => show)
     .map(([colName]) => colName) as string[];
-
-  const colsNamesChunks = _.chunk(colNames, maxColsPerPage);
-
-  // const rowsDataChunks = _.chunk(rowsData, maxRowsPerPage);
 
   const header = (
     <Header
@@ -69,6 +77,18 @@ export const MapReportDocument = ({
       title={data.title}
     />
   );
+
+  const isOmittable = (_: unknown, key: string) => {
+    const isAttachment = data.attachments.attachmentColNames.includes(key);
+    const isEnabled = colNames.includes(key);
+    return isAttachment || !isEnabled;
+  };
+
+  // properties without attachments
+  const filteredFeaturesData = data.table.featuresData.map((f) => ({
+    ...f,
+    properties: _.omitBy(f.properties, isOmittable),
+  }));
 
   return (
     <Document
@@ -78,53 +98,96 @@ export const MapReportDocument = ({
       }}
       title={data.title || "گزارش‌گیری"}
     >
-      {/* {data.table.enabled &&
-        colsNamesChunks.map((colNames, ic) => {
-          return rowsDataChunks.map((tableData, it) => (
-            <Page
-              size="A4"
-              orientation="landscape"
-              key={`${ic}-${it}`}
-              style={{ padding: 16, display: "flex", gap: "12" }}
-            >
-              {header}
-              <View>
-                <Table
-                  tableData={tableData}
-                  colNames={colNames}
-                  key={`${ic}-${it}`}
-                />
-              </View>
-            </Page>
-          ));
-        })} */}
+      <Page wrap style={{ padding: 8, paddingBottom: 10 }}>
+        {header}
+        {filteredFeaturesData.map(({ properties, dataUrls }, i) => {
+          const attachmentsImages: React.ReactNode[] | null = (() => {
+            try {
+              const attchmentKey = data.attachments.selectedColumn;
+              const feat = data.table.featuresData[i].properties;
+              const stringData = feat[attchmentKey] as string;
+              if (!stringData) {
+                return null;
+              }
+              const parsed = JSON.parse(stringData) as Attachment[];
+              const slice = parsed.slice(0, 2);
+              const { baseUrl, xApiKey } = data;
 
-      {data.table.rowsData.map((rd, i) => {
-        return (
-          <Page
-            size="A4"
-            orientation="landscape"
-            style={{
-              padding: 16,
-              display: "flex",
-              gap: "12",
-              alignItems: "center",
-            }}
-            key={i}
-          >
-            {header}
-            <Text>RD {i}</Text>
-            <Image src={rd.dataUrl.map_1} style={{ width: 550 }} />
-            <Image src={rd.dataUrl.map_2} style={{ width: 550 }} />
-          </Page>
-        );
-      })}
-      {/* {data.map_1Settings.enabled && (
-          <Image src={data.map_1Settings.dataUrl} style={{ width: 550 }} />
-        )}
-        {data.map_2Settings.enabled && (
-          <Image src={data.map_2Settings.dataUrl} style={{ width: 550 }} />
-        )} */}
+              return slice.map((attachment, i) => (
+                <Image
+                  key={i}
+                  source={`${baseUrl}${attachment.link}?x-api-key=${xApiKey}`}
+                  style={{ maxHeight: 300, maxWidth: 300 }}
+                />
+              ));
+            } catch (error) {
+              console.dir("Error getting attachment data", error);
+              return null;
+            }
+          })();
+
+          return (
+            <View
+              key={i}
+              break={i !== 0}
+              style={{ gap: 8, padding: 8, paddingTop: 0 }}
+            >
+              <View
+                style={{
+                  flexDirection: "row-reverse",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  border: 1,
+                  borderRadius: 10,
+                  padding: 8,
+                }}
+              >
+                {Object.entries(properties).map(([key, value]) => {
+                  return (
+                    <View
+                      key={key}
+                      style={{
+                        flexDirection: "row-reverse",
+                        backgroundColor: "#dedede",
+                        gap: 4,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row-reverse",
+                          fontFamily: fontFamilies.bold,
+                        }}
+                      >
+                        <Text>{key}</Text>
+                        <Text>:</Text>
+                      </View>
+                      <Text>{String(value)}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+              <Image src={dataUrls.map_1} style={{ width: "100%" }} />
+              <Image src={dataUrls.map_2} style={{ width: "100%" }} />
+              <View
+                style={{
+                  flexDirection: "row-reverse",
+                  gap: 8,
+                  alignItems: "flex-start",
+                }}
+              >
+                {attachmentsImages}
+              </View>
+            </View>
+          );
+        })}
+        <Text
+          fixed
+          style={{ position: "absolute", right: 10, bottom: 10 }}
+          render={({ pageNumber, totalPages }) =>
+            `${pageNumber} / ${totalPages}`
+          }
+        />
+      </Page>
     </Document>
   );
 };
@@ -133,12 +196,13 @@ function Header({ logoSrc, title }: { logoSrc?: string; title?: string }) {
   return (
     <View
       style={{
-        display: "flex",
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
         width: "100%",
+        marginBottom: 8,
       }}
+      fixed
     >
       <View style={{ width: 24, height: "auto" }}>
         {logoSrc && <Image src={logoSrc} />}
