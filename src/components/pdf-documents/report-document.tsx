@@ -29,6 +29,8 @@ interface Attachment {
   id: number;
 }
 
+type GroupingData = { groupName: string | null; fields: string[] }[];
+
 type AttachmentsInfo = {
   attachmentColNames: string[];
   enabled: boolean;
@@ -44,6 +46,7 @@ interface ITable {
   enabled: boolean;
   columnNames: (boolean | string)[][];
   featuresData: IFeatureData[];
+  groupingData: GroupingData;
 }
 
 type IFeatureData = {
@@ -103,9 +106,18 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
               break={i !== 0}
               style={{ gap: 8, padding: 8, paddingTop: 0 }}
             >
-              <KeysAndValues properties={properties} />
-              <Image src={dataUrls.map_1} style={{ width: "100%" }} />
-              <Image src={dataUrls.map_2} style={{ width: "100%" }} />
+              {data.table.enabled && (
+                <KeysAndValues
+                  properties={properties}
+                  groupingData={data.table.groupingData}
+                />
+              )}
+              {data.map_1Settings.enabled && (
+                <Image src={dataUrls.map_1} style={{ width: "100%" }} />
+              )}
+              {data.map_2Settings.enabled && (
+                <Image src={dataUrls.map_2} style={{ width: "100%" }} />
+              )}
               <AttachmentImages data={data} index={i} />
             </View>
           );
@@ -124,25 +136,47 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
 
 function KeysAndValues({
   properties,
+  groupingData,
 }: {
   properties: Record<string, unknown>;
+  groupingData: GroupingData;
 }) {
-  return (
-    <View
-      style={{
-        flexDirection: "row-reverse",
-        gap: 8,
-        flexWrap: "wrap",
-        border: 1,
-        borderRadius: 10,
-        padding: 8,
-      }}
-    >
-      {Object.entries(properties).map(([key, value]) => {
-        return <KeyValue key={key} _key={key} value={value} />;
-      })}
-    </View>
-  );
+  const groups = (() => {
+    return groupingData.map(({ groupName, fields }) => {
+      const groupedProperties: Record<string, unknown> = {};
+      Object.entries(properties).forEach(([k, v]) => {
+        if (fields.includes(k)) {
+          groupedProperties[k] = v;
+        }
+      });
+      return {
+        groupName,
+        groupedProperties,
+      };
+    });
+  })();
+
+  return groups.map(({ groupName, groupedProperties }, i) => {
+    return (
+      <View key={i}>
+        <Text style={{ textAlign: "right", fontSize: 14 }}>{groupName}</Text>
+        <View
+          style={{
+            flexDirection: "row-reverse",
+            gap: 8,
+            flexWrap: "wrap",
+            border: 1,
+            borderRadius: 10,
+            padding: 8,
+          }}
+        >
+          {Object.entries(groupedProperties).map(([key, value]) => {
+            return <KeyValue key={key} _key={key} value={value} />;
+          })}
+        </View>
+      </View>
+    );
+  });
 }
 
 function KeyValue({ _key, value }: { _key: string; value: unknown }) {

@@ -29,7 +29,31 @@ const pages = {
   ),
   report: () => (
     <MyMReportPDF
-      data={{ ...mockReportData, logoSrc }}
+      data={{
+        ...mockReportData,
+        logoSrc,
+        table: {
+          ...mockReportData.table,
+          groupingData: [
+            {
+              groupName: "group 1",
+              fields: [
+                "user_id",
+                "مانده مطالبات معوق",
+                "مانده ی جاری سپرده ها",
+              ],
+            },
+            {
+              groupName: "group 2",
+              fields: ["ستون_ژئومتری", "geometry"],
+            },
+            {
+              groupName: null,
+              fields: ["کدپستی", "نام بانک", "تلفن", "شعبه"],
+            },
+          ],
+        },
+      }}
       fontFamilies={{ regular: "Vazirmatn-Regular", bold: "Vazirmatn-Bold" }}
     />
   ),
