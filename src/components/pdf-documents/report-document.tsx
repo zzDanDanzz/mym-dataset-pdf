@@ -71,17 +71,10 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
     .filter(([, show]) => show)
     .map(([colName]) => colName) as string[];
 
-  const header = (
-    <Header
-      {...(data.withLogo && { logoSrc: data.logoSrc })}
-      title={data.title}
-    />
-  );
-
   const isOmittable = (_: unknown, key: string) => {
     const isAttachment = data.attachments.attachmentColNames.includes(key);
-    const isEnabled = colNames.includes(key);
-    return isAttachment || !isEnabled;
+    const isDisabled = !colNames.includes(key);
+    return isAttachment || isDisabled;
   };
 
   // properties without attachments
@@ -99,84 +92,21 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
       title={data.title || "گزارش‌گیری"}
     >
       <Page wrap style={{ padding: 8, paddingBottom: 10 }}>
-        {header}
+        <Header
+          {...(data.withLogo && { logoSrc: data.logoSrc })}
+          title={data.title}
+        />
         {filteredFeaturesData.map(({ properties, dataUrls }, i) => {
-          const attachmentsImages: React.ReactNode[] | null = (() => {
-            try {
-              const attchmentKey = data.attachments.selectedColumn;
-              const feat = data.table.featuresData[i].properties;
-              const stringData = feat[attchmentKey] as string;
-              if (!stringData) {
-                return null;
-              }
-              const parsed = JSON.parse(stringData) as Attachment[];
-              const slice = parsed.slice(0, 2);
-              const { baseUrl, xApiKey } = data;
-
-              return slice.map((attachment, i) => (
-                <Image
-                  key={i}
-                  source={`${baseUrl}${attachment.link}?x-api-key=${xApiKey}`}
-                  style={{ maxHeight: 300, maxWidth: 300 }}
-                />
-              ));
-            } catch (error) {
-              console.dir("Error getting attachment data", error);
-              return null;
-            }
-          })();
-
           return (
             <View
               key={i}
               break={i !== 0}
               style={{ gap: 8, padding: 8, paddingTop: 0 }}
             >
-              <View
-                style={{
-                  flexDirection: "row-reverse",
-                  gap: 8,
-                  flexWrap: "wrap",
-                  border: 1,
-                  borderRadius: 10,
-                  padding: 8,
-                }}
-              >
-                {Object.entries(properties).map(([key, value]) => {
-                  return (
-                    <View
-                      key={key}
-                      style={{
-                        flexDirection: "row-reverse",
-                        backgroundColor: "#dedede",
-                        gap: 4,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row-reverse",
-                          fontFamily: fontFamilies.bold,
-                        }}
-                      >
-                        <Text>{key}</Text>
-                        <Text>:</Text>
-                      </View>
-                      <Text>{String(value)}</Text>
-                    </View>
-                  );
-                })}
-              </View>
+              <KeysAndValues properties={properties} />
               <Image src={dataUrls.map_1} style={{ width: "100%" }} />
               <Image src={dataUrls.map_2} style={{ width: "100%" }} />
-              <View
-                style={{
-                  flexDirection: "row-reverse",
-                  gap: 8,
-                  alignItems: "flex-start",
-                }}
-              >
-                {attachmentsImages}
-              </View>
+              <AttachmentImages data={data} index={i} />
             </View>
           );
         })}
@@ -191,6 +121,105 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
     </Document>
   );
 };
+
+function KeysAndValues({
+  properties,
+}: {
+  properties: Record<string, unknown>;
+}) {
+  return (
+    <View
+      style={{
+        flexDirection: "row-reverse",
+        gap: 8,
+        flexWrap: "wrap",
+        border: 1,
+        borderRadius: 10,
+        padding: 8,
+      }}
+    >
+      {Object.entries(properties).map(([key, value]) => {
+        return <KeyValue key={key} _key={key} value={value} />;
+      })}
+    </View>
+  );
+}
+
+function KeyValue({ _key, value }: { _key: string; value: unknown }) {
+  const fontFamilies = useContext(FontContext);
+
+  return (
+    <View
+      style={{
+        flexDirection: "row-reverse",
+        backgroundColor: "#dedede",
+        gap: 4,
+      }}
+    >
+      <View
+        style={{
+          flexDirection: "row-reverse",
+          fontFamily: fontFamilies.bold,
+        }}
+      >
+        <Text>{_key}</Text>
+        <Text>:</Text>
+      </View>
+      <Text>{String(value)}</Text>
+    </View>
+  );
+}
+
+function AttachmentImages({
+  data,
+  index,
+}: IMapReportDocument & { index: number }) {
+  const attachmentImages = (() => {
+    try {
+      const { attachments } = data;
+
+      // if disabled attachments or there are no attachment cols
+      if (!attachments.enabled || attachments.selectedColumn.length === 0) {
+        return null;
+      }
+
+      const attchmentKey = attachments.selectedColumn;
+      const featureProperties = data.table.featuresData[index].properties;
+      const stringData = featureProperties[attchmentKey] as string;
+
+      if (!stringData) {
+        return null;
+      }
+
+      const parsed = JSON.parse(stringData) as Attachment[];
+      const slice = parsed.slice(0, 2);
+      const { baseUrl, xApiKey } = data;
+
+      return slice.map((attachment, i) => (
+        <Image
+          key={i}
+          source={`${baseUrl}${attachment.link}?x-api-key=${xApiKey}`}
+          style={{ maxHeight: 300, maxWidth: 300 }}
+        />
+      ));
+    } catch (error) {
+      console.dir("Error getting attachment data", error);
+      return null;
+    }
+  })();
+
+  return (
+    <View
+      style={{
+        flexDirection: "row-reverse",
+        gap: 8,
+        alignItems: "flex-start",
+      }}
+    >
+      {attachmentImages}
+    </View>
+  );
+}
 
 function Header({ logoSrc, title }: { logoSrc?: string; title?: string }) {
   return (
