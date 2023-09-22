@@ -1,4 +1,12 @@
-import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
+import {
+  Document,
+  Image,
+  Page,
+  Path,
+  Svg,
+  Text,
+  View,
+} from "@react-pdf/renderer";
 import { useContext } from "react";
 import FontContext from "../../context/fontFamilies";
 import _ from "../utils/lodash";
@@ -94,7 +102,7 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
       }}
       title={data.title || "گزارش‌گیری"}
     >
-      <Page wrap style={{ padding: 8, paddingBottom: 10 }}>
+      <Page wrap style={{ padding: 12, paddingBottom: 20 }}>
         <Header
           {...(data.withLogo && { logoSrc: data.logoSrc })}
           title={data.title}
@@ -104,7 +112,7 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
             <View
               key={i}
               break={i !== 0}
-              style={{ gap: 8, padding: 8, paddingTop: 0 }}
+              style={{ gap: 8, paddingTop: 0 }}
             >
               {data.table.enabled && (
                 <KeysAndValues
@@ -113,10 +121,16 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
                 />
               )}
               {data.map_1Settings.enabled && (
-                <Image src={dataUrls.map_1} style={{ width: "100%" }} />
+                <Image
+                  src={dataUrls.map_1}
+                  style={{ width: "100%", borderRadius: 8 }}
+                />
               )}
               {data.map_2Settings.enabled && (
-                <Image src={dataUrls.map_2} style={{ width: "100%" }} />
+                <Image
+                  src={dataUrls.map_2}
+                  style={{ width: "100%", borderRadius: 8 }}
+                />
               )}
               <AttachmentImages data={data} index={i} />
             </View>
@@ -124,13 +138,29 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
         })}
         <Text
           fixed
-          style={{ position: "absolute", right: 10, bottom: 10 }}
+          style={{ position: "absolute", right: 10, bottom: 6, fontSize: 10 }}
           render={({ pageNumber, totalPages }) =>
             `${pageNumber} / ${totalPages}`
           }
         />
       </Page>
     </Document>
+  );
+};
+
+const FolderSVG = () => {
+  return (
+    <Svg width="16" height="16" viewBox="0 0 16 16">
+      <Path
+        d="M14 12.1481C14 12.4625 13.8736 12.7639 13.6485 12.9862C13.4235 13.2085 13.1183 13.3333 12.8 13.3333H3.2C2.88174 13.3333 2.57652 13.2085 2.35147 12.9862C2.12643 12.7639 2 12.4625 2 12.1481V3.85185C2 3.53752 2.12643 3.23607 2.35147 3.0138C2.57652 2.79154 2.88174 2.66667 3.2 2.66667H6.2L7.4 4.44445H12.8C13.1183 4.44445 13.4235 4.56931 13.6485 4.79158C13.8736 5.01384 14 5.3153 14 5.62963V12.1481Z"
+        stroke="#667085"
+        strokeWidth="1.5"
+        strokeLineCap="round"
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 };
 
@@ -141,6 +171,8 @@ function KeysAndValues({
   properties: Record<string, unknown>;
   groupingData: GroupingData;
 }) {
+  const fontFamilies = useContext(FontContext);
+
   const groups = (() => {
     return groupingData.map(({ groupName, fields }) => {
       const groupedProperties: Record<string, unknown> = {};
@@ -156,27 +188,57 @@ function KeysAndValues({
     });
   })();
 
-  return groups.map(({ groupName, groupedProperties }, i) => {
-    return (
-      <View key={i}>
-        <Text style={{ textAlign: "right", fontSize: 14 }}>{groupName}</Text>
-        <View
-          style={{
-            flexDirection: "row-reverse",
-            gap: 8,
-            flexWrap: "wrap",
-            border: 1,
-            borderRadius: 10,
-            padding: 8,
-          }}
-        >
-          {Object.entries(groupedProperties).map(([key, value]) => {
-            return <KeyValue key={key} _key={key} value={value} />;
-          })}
-        </View>
-      </View>
-    );
-  });
+  return (
+    <View
+      style={{
+        border: 1,
+        borderRadius: 8,
+        borderColor: "#D0D5DD",
+        padding: 8,
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      {groups.map(({ groupName, groupedProperties }, i) => {
+        return (
+          <View key={i}>
+            {groupName && (
+              <View
+                style={{
+                  flexDirection: "row-reverse",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <FolderSVG />
+                <Text
+                  style={{
+                    textAlign: "right",
+                    fontSize: 13,
+                    color: "#667085",
+                    fontFamily: fontFamilies.bold,
+                  }}
+                >
+                  {groupName}
+                </Text>
+              </View>
+            )}
+            <View
+              style={{
+                flexDirection: "row-reverse",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              {Object.entries(groupedProperties).map(([key, value]) => {
+                return <KeyValue key={key} _key={key} value={value} />;
+              })}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 function KeyValue({ _key, value }: { _key: string; value: unknown }) {
@@ -186,8 +248,10 @@ function KeyValue({ _key, value }: { _key: string; value: unknown }) {
     <View
       style={{
         flexDirection: "row-reverse",
-        backgroundColor: "#dedede",
+        backgroundColor: "#EDEDED",
         gap: 4,
+        padding: 4,
+        borderRadius: 6,
       }}
     >
       <View
@@ -226,13 +290,14 @@ function AttachmentImages({
       }
 
       const parsed = JSON.parse(stringData) as Attachment[];
-      const slice = parsed.slice(0, 2);
+      const imagesOnly = parsed.filter((a) => a.mime_type.includes("image"));
+      const slice = imagesOnly.slice(0, 2);
       const { baseUrl, xApiKey } = data;
 
-      return slice.map((attachment, i) => (
+      return slice.map((image) => (
         <Image
-          key={i}
-          source={`${baseUrl}${attachment.link}?x-api-key=${xApiKey}`}
+          key={image.id}
+          source={`${baseUrl}${image.link}?x-api-key=${xApiKey}`}
           style={{ maxHeight: 300, maxWidth: 300 }}
         />
       ));
