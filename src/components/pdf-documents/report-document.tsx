@@ -1,4 +1,4 @@
-import {
+import ReactPDF, {
   Document,
   Image,
   Page,
@@ -10,6 +10,12 @@ import {
 import { useContext } from "react";
 import FontContext from "../../context/fontFamilies";
 import _ from "../utils/lodash";
+
+import {
+  digitsArToFa,
+  digitsFaToEn,
+  hasPersian,
+} from "@persian-tools/persian-tools";
 
 export interface IMapReportDocument {
   data: IMapReportData;
@@ -109,11 +115,7 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
         />
         {filteredFeaturesData.map(({ properties, dataUrls }, i) => {
           return (
-            <View
-              key={i}
-              break={i !== 0}
-              style={{ gap: 8, paddingTop: 0 }}
-            >
+            <View key={i} break={i !== 0} style={{ gap: 8, paddingTop: 0 }}>
               {data.table.enabled && (
                 <KeysAndValues
                   properties={properties}
@@ -260,10 +262,10 @@ function KeyValue({ _key, value }: { _key: string; value: unknown }) {
           fontFamily: fontFamilies.bold,
         }}
       >
-        <Text>{_key}</Text>
+        <TextNormalized>{_key}</TextNormalized>
         <Text>:</Text>
       </View>
-      <Text>{String(value)}</Text>
+      <TextNormalized>{String(value)}</TextNormalized>
     </View>
   );
 }
@@ -335,9 +337,57 @@ function Header({ logoSrc, title }: { logoSrc?: string; title?: string }) {
       <View style={{ width: 24, height: "auto" }}>
         {logoSrc && <Image src={logoSrc} />}
       </View>
-      <View>
-        {typeof title === "string" && title.length > 0 && <Text>{title}</Text>}
-      </View>
+      <TextNormalized>{title}</TextNormalized>
     </View>
   );
 }
+
+const containsFaNums = (str: string) => {
+  str = digitsArToFa(str);
+  const persianNumbersRegex = /[\u06F0-\u06F9]+/;
+  return persianNumbersRegex.test(str);
+};
+
+const TextNormalized = ({
+  children,
+  ...props
+}: React.PropsWithChildren & ReactPDF.TextProps) => {
+  const { pesianNumbersFont } = useContext(FontContext);
+
+  const isValidString = typeof children === "string" && children.length > 0;
+  if (!isValidString) {
+    console.error(
+      `From TextNormalized: this is not a valid string: children: ${children}`
+    );
+    return null;
+  }
+
+  const _hasPersian = hasPersian(children, true);
+
+  return (
+    <View
+      style={{ flexDirection: _hasPersian ? "row-reverse" : "row", gap: 3 }}
+    >
+      {children.split(" ").map((txt, i) => {
+        const _containsFaNums = containsFaNums(txt);
+        if (_containsFaNums) {
+          txt = digitsFaToEn(txt);
+        }
+
+        return (
+          <Text
+            key={txt + i + children}
+            {...props}
+            style={{
+              ...props.style,
+              ...(_containsFaNums &&
+                pesianNumbersFont && { fontFamily: pesianNumbersFont }),
+            }}
+          >
+            {txt}
+          </Text>
+        );
+      })}
+    </View>
+  );
+};

@@ -27,6 +27,7 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
+    "@persian-tools/persian-tools": "^3.5.0",
     "@types/lodash.omitby": "^4.6.7",
     "lodash.chunk": "^4.2.0",
     "lodash.omit": "^4.5.0",

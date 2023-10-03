@@ -1,14 +1,14 @@
 import { Font, PDFViewer } from "@react-pdf/renderer";
 
-import { mock as mockDatasetPdfData } from "./mock-data/mock-datasets";
 import { mock as mockReportData } from "./mock-data/mock-report";
 
-import { MyMDatasetPdf, MyMReportPDF } from "../mym-dataset-pdf";
+import { MyMReportPDF } from "../mym-dataset-pdf";
 
-import vB from "./fonts/Vazirmatn-Bold.ttf";
-import vR from "./fonts/Vazirmatn-Regular.ttf";
 import { useState } from "react";
 import logoSrc from "./assets/logo.png";
+import vB from "./fonts/Vazirmatn-Bold.ttf";
+import vR from "./fonts/Vazirmatn-Regular.ttf";
+import IRANSansXFaNum_Regular from "./fonts/IRANSansXFaNum-Regular.woff";
 
 Font.register({
   family: "Vazirmatn-Regular",
@@ -20,45 +20,55 @@ Font.register({
   src: vB,
 });
 
-const pages = {
-  datasets: () => (
-    <MyMDatasetPdf
-      data={mockDatasetPdfData}
-      fontFamilies={{ regular: "Vazirmatn-Regular", bold: "Vazirmatn-Bold" }}
-    />
-  ),
-  report: () => (
-    <MyMReportPDF
-      data={{
-        ...mockReportData,
-        logoSrc,
-      }}
-      fontFamilies={{ regular: "Vazirmatn-Regular", bold: "Vazirmatn-Bold" }}
-    />
-  ),
-} as const;
+Font.register({
+  family: "IRANSansXFaNum_Regular",
+  src: IRANSansXFaNum_Regular,
+});
 
-type IPages = keyof typeof pages;
+const textCases = [
+  `سلام 1402/02/14  hello سلام`,
+  `سلام ۱۴۰۲/۰۲/۱۴ hello سلام`,
+  `hello 1402 02 14`,
+  `سلام 1402 02 14 hello سلام`,
+];
 
 function App() {
-  const [page, setPage] = useState<IPages | null>("report");
-
-  const pagesData = Object.entries(pages);
-  const pageComponent = page !== null ? pages[page]() : null;
+  const [textCaseIdx, setTextCaseIdx] = useState(2);
 
   return (
     <div>
-      {page === null &&
-        pagesData.map(([pageName]) => (
-          <button onClick={() => setPage(pageName as IPages)} key={pageName}>
-            {pageName}
-          </button>
-        ))}
-      {pageComponent && (
-        <PDFViewer style={{ height: "100vh", width: "100vw" }}>
-          {pageComponent}
-        </PDFViewer>
-      )}
+      <div>
+        test cases:{" "}
+        {textCases.map((tc, i) => {
+          const selected = i === textCaseIdx;
+          return (
+            <button
+              key={tc}
+              onClick={() => setTextCaseIdx(i)}
+              dir="auto"
+              style={{
+                backgroundColor: selected ? "azure" : "gray",
+              }}
+            >
+              {tc}
+            </button>
+          );
+        })}
+      </div>
+      <PDFViewer style={{ height: "100vh", width: "100vw" }}>
+        <MyMReportPDF
+          data={{
+            ...mockReportData,
+            title: textCases[textCaseIdx],
+            logoSrc,
+          }}
+          fontFamilies={{
+            regular: "Vazirmatn-Regular",
+            bold: "Vazirmatn-Bold",
+            pesianNumbersFont: "IRANSansXFaNum_Regular",
+          }}
+        />
+      </PDFViewer>
     </div>
   );
 }
