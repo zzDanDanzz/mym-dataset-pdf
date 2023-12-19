@@ -2,8 +2,6 @@ import ReactPDF, {
   Document,
   Image,
   Page,
-  Path,
-  Svg,
   Text,
   View,
 } from "@react-pdf/renderer";
@@ -140,29 +138,13 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
         })}
         <Text
           fixed
-          style={{ position: "absolute", right: 10, bottom: 6, fontSize: 10 }}
+          style={{ position: "absolute", right: 10, bottom: 8, fontSize: 10 }}
           render={({ pageNumber, totalPages }) =>
             `${pageNumber} / ${totalPages}`
           }
         />
       </Page>
     </Document>
-  );
-};
-
-const FolderSVG = () => {
-  return (
-    <Svg width="16" height="16" viewBox="0 0 16 16">
-      <Path
-        d="M14 12.1481C14 12.4625 13.8736 12.7639 13.6485 12.9862C13.4235 13.2085 13.1183 13.3333 12.8 13.3333H3.2C2.88174 13.3333 2.57652 13.2085 2.35147 12.9862C2.12643 12.7639 2 12.4625 2 12.1481V3.85185C2 3.53752 2.12643 3.23607 2.35147 3.0138C2.57652 2.79154 2.88174 2.66667 3.2 2.66667H6.2L7.4 4.44445H12.8C13.1183 4.44445 13.4235 4.56931 13.6485 4.79158C13.8736 5.01384 14 5.3153 14 5.62963V12.1481Z"
-        stroke="#667085"
-        strokeWidth="1.5"
-        strokeLineCap="round"
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        strokeLinejoin="round"
-      />
-    </Svg>
   );
 };
 
@@ -193,49 +175,34 @@ function KeysAndValues({
   return (
     <View
       style={{
-        border: 1,
-        borderRadius: 8,
-        borderColor: "#D0D5DD",
-        padding: 8,
         flexDirection: "column",
         gap: 12,
       }}
     >
       {groups.map(({ groupName, groupedProperties }, i) => {
         return (
-          <View key={i}>
+          <View
+            key={i}
+            style={{
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
             {groupName && (
-              <View
+              <Text
                 style={{
-                  flexDirection: "row-reverse",
-                  alignItems: "center",
-                  gap: 4,
+                  textAlign: "right",
+                  fontSize: 16,
+                  fontFamily: fontFamilies.bold,
+                  borderBottom: 1,
                 }}
               >
-                <FolderSVG />
-                <Text
-                  style={{
-                    textAlign: "right",
-                    fontSize: 13,
-                    color: "#667085",
-                    fontFamily: fontFamilies.bold,
-                  }}
-                >
-                  {groupName}
-                </Text>
-              </View>
+                {groupName}
+              </Text>
             )}
-            <View
-              style={{
-                flexDirection: "row-reverse",
-                gap: 16,
-                flexWrap: "wrap",
-              }}
-            >
-              {Object.entries(groupedProperties).map(([key, value]) => {
-                return <KeyValue key={key} _key={key} value={value} />;
-              })}
-            </View>
+            {Object.entries(groupedProperties).map(([key, value]) => {
+              return <KeyValue key={key} _key={key} value={value} />;
+            })}
           </View>
         );
       })}
@@ -250,10 +217,7 @@ function KeyValue({ _key, value }: { _key: string; value: unknown }) {
     <View
       style={{
         flexDirection: "row-reverse",
-        backgroundColor: "#EDEDED",
         gap: 4,
-        padding: 4,
-        borderRadius: 6,
       }}
     >
       <View
@@ -323,6 +287,7 @@ function AttachmentImages({
 }
 
 function Header({ logoSrc, title }: { logoSrc?: string; title?: string }) {
+  const fontFamilies = useContext(FontContext);
   return (
     <View
       style={{
@@ -330,14 +295,16 @@ function Header({ logoSrc, title }: { logoSrc?: string; title?: string }) {
         justifyContent: "space-between",
         alignItems: "center",
         width: "100%",
-        marginBottom: 8,
+        paddingTop: 6,
+        paddingBottom: 12,
+        fontFamily: fontFamilies.bold,
       }}
       fixed
     >
-      <View style={{ width: 24, height: "auto" }}>
+      <View style={{ height: 32, width: "auto", padding: 2 }}>
         {logoSrc && <Image src={logoSrc} />}
       </View>
-      <TextNormalized>{title}</TextNormalized>
+      <TextNormalized style={{ fontSize: 16 }}>{title}</TextNormalized>
     </View>
   );
 }
