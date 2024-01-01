@@ -333,7 +333,7 @@ const TextNormalized = ({
 
   return (
     <View
-      style={{ flexDirection: _hasPersian ? "row-reverse" : "row", gap: 3 }}
+      style={{ flexDirection: _hasPersian ? "row-reverse" : "row", gap: 3, flexWrap: 'wrap' }}
     >
       {children.split(" ").map((txt, i) => {
         const _containsFaNums = containsFaNums(txt);
