@@ -59,6 +59,7 @@ interface ITable {
   columnNames: (boolean | string)[][];
   featuresData: IFeatureData[];
   groupingData: GroupingData;
+  datasourceColumnOrdering: string[];
 }
 
 type IFeatureData = {
@@ -118,6 +119,7 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
                 <KeysAndValues
                   properties={properties}
                   groupingData={data.table.groupingData}
+                  table={data.table}
                 />
               )}
               {data.map_1Settings.enabled && (
@@ -151,9 +153,11 @@ export const MapReportDocument = ({ data }: IMapReportDocument) => {
 function KeysAndValues({
   properties,
   groupingData,
+  table
 }: {
   properties: Record<string, unknown>;
   groupingData: GroupingData;
+  table: IMapReportData['table']
 }) {
   const fontFamilies = useContext(FontContext);
 
@@ -180,6 +184,21 @@ function KeysAndValues({
       }}
     >
       {groups.map(({ groupName, groupedProperties }, i) => {
+        const orderedGroupedProperties = Object.entries(groupedProperties).sort(([keyA], [keyB]) => {
+          const indexA = table.datasourceColumnOrdering.indexOf(keyA);
+          const indexB = table.datasourceColumnOrdering.indexOf(keyB);
+
+          if (indexA === -1) {
+            return 1;
+          }
+
+          if (indexB === -1) {
+            return -1;
+          }
+
+          return indexA - indexB;
+        });
+
         return (
           <View
             key={i}
@@ -200,7 +219,7 @@ function KeysAndValues({
                 {groupName}
               </Text>
             )}
-            {Object.entries(groupedProperties).map(([key, value]) => {
+            {orderedGroupedProperties.map(([key, value]) => {
               return <KeyValue key={key} _key={key} value={value} />;
             })}
           </View>
@@ -333,7 +352,11 @@ const TextNormalized = ({
 
   return (
     <View
-      style={{ flexDirection: _hasPersian ? "row-reverse" : "row", gap: 3, flexWrap: 'wrap' }}
+      style={{
+        flexDirection: _hasPersian ? "row-reverse" : "row",
+        gap: 3,
+        flexWrap: "wrap",
+      }}
     >
       {children.split(" ").map((txt, i) => {
         const _containsFaNums = containsFaNums(txt);
